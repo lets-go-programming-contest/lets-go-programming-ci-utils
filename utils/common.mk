@@ -1,5 +1,5 @@
 sanity-branch:
-	@bash ${TEST_DIR_UTILS}/sanity-branch.sh
+	bash ${TEST_DIR_UTILS}/sanity-branch.sh
 
 sanity-files:
 	bash ${TEST_DIR_UTILS}/sanity-files.sh
@@ -16,3 +16,5 @@ unit-tests:
 custom-tests:
 	bash ${TEST_DIR_UTILS}/custom-tests.sh
 
+lint:
+	bash ${TEST_DIR_UTILS}/lint.sh

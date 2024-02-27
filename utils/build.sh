@@ -1,37 +1,59 @@
 #!/bin/bash
 
-dir=$(dirname "$0")
-. "$dir/common.sh"
+. "$TEST_DIR_UTILS/common.sh"
 
-student=$(get_students "$HEAD" | head -n 1)
-tasks=$(get_tasks "$HEAD" "$student")
+student=$(get_students "${HEAD}" | head -n 1)
+tasks=$(get_tasks "${HEAD}" "${student}")
+
+if [ -z "$tasks" ]; then
+  echo "No solutions provided, add the solutions to the task directories to continue!" >&2
+  exit 0
+fi
+
+add_in_total() {
+  if [ -s "logs/build-$1-error-log.txt" ]; then
+    echo "$1...FAILED" >> total_build.txt
+  else
+    echo "$1...OK" >> total_build.txt
+  fi
+}
 
 for task in $tasks; do
   mode=$(get_cfg_value "$TEST_DIR_COMMON/$task/ci.cfg" "BUILD_MODE")
 
-  case "$mode" in
-    "none" )
-      printf "Build mode for %s set as NONE, build will be skipped.\n" "$task"
-    ;;
-  "make" )
-      printf "Run build %s with Makefile by test system.\n" "$task"
-      make -f "$TEST_DIR_COMMON/$task/Makefile" build BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task"
-    ;;
-  "student" )
-      printf "Run build %s with Makefile by student.\n" "$task"
-      make -f "$student/$task/Makefile" build BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task"
-    ;;
-  * )
-    printf "Run build %s process in default mode.\n" "$task"
-        find "$student/$task/cmd" -name 'main.go' | while read -r main_file; do
-          service_dir=$(dirname "$main_file")
-          service_name=$(basename "$service_dir")
-          mkdir -p "$WORKDIR/bin/$task"
-          go build -o "$WORKDIR/bin/$task/$service_name" "$main_file"
-        done
-    ;;
+  case $mode in
+    none)
+      echo "Mode is set to NONE, skip" > "logs/build-$task-log.txt" 
+      add_in_total "$task"
+      ;;
+    make)
+      make -C "$TEST_DIR_COMMON/$task" --no-print-directory \
+        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" \
+        build > "logs/build-$task-log.txt" 2> "logs/build-$task-error-log.txt"
+      add_in_total "$task"
+      ;;
+    student)
+      make -C "$student/$task" --no-print-directory \
+        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" \
+        build > "logs/build-$task-log.txt" 2> "logs/build-$task-error-log.txt"
+      add_in_total "$task"
+      ;;
+    *)
+      for main_file in $(find "$student/$task/cmd" -name "main.go"); do
+        service_dir=$(dirname "$main_file")
+        service_name=$(basename "$service_dir")
+        go build -o "$WORKDIR/bin/$task/$service_name" "$main_file" > "logs/build-$task-$service_name-log.txt" 2> "logs/build-$task-$service_name-error-log.txt"
+
+        add_in_total "$task-$service_name"
+      done
+      ;;
   esac
 done
 
+cat total_build.txt
 
+if grep -q "FAILED" total_build.txt; then
+  exit 1
+fi
+  exit 0
 

@@ -1,12 +1,17 @@
 #!/bin/bash
 
-dir=$(dirname "$0")
-. "$dir/constants.sh"
+. "$TEST_DIR_UTILS/constants.sh"
 
-get_diff () {
+get_diff() {
   local head="$1"
-  local files=$(git diff --name-only -z "$BASE_BRANCH"..."$head" | tr '\000' '\n')
-  echo "$files"
+  local changes="$(git diff --name-only -z "$BASE_BRANCH"..."$head" | tr '\000' '\n')"
+
+  if test -z "$changes"
+  then
+      changes="$(git diff --name-only -z "$head^" | tr '\000' '\n')"
+  fi
+
+  echo "$changes"
 }
 
 get_labs_files() {
@@ -15,13 +20,13 @@ get_labs_files() {
   echo "$files"
 }
 
-get_students () {
+get_students() {
   local head="$1"
   local students=$(get_labs_files "$head" | grep -o -E "^$STUDENT_REGEXP_PATTERN" | sort | uniq)
   echo "$students"
 }
 
-get_tasks () {
+get_tasks() {
   local head="$1"
   local student_name="$2"
   local tasks=$(get_labs_files "$head" | grep -E "^$student_name" | grep -o -E "$TASK_REGEXP_PATTERN" | sort | uniq)
@@ -31,21 +36,28 @@ get_tasks () {
 get_cfg_value() {
     local file="$1"
     local key="$2"
-    if test -f "$PATH_TO_COMMON/$task/ci.cfg" ; then
+    if test -f "$TEST_DIR_COMMON/$task/ci.cfg" ; then
       local value=$(grep -E "$key" "$file" | awk '{print $2}')
     fi
     echo "$value"
 }
 
+print_copyright() {
+  cat "$TEST_DIR_UTILS/copyright.txt"
+}
+
+print_copyright
+printf "\033[34mPreparing the environment for execution... \033[0m\n"
+
 if test -z "$WORKDIR"; then
-  WORKDIR=$(PWD)
+  WORKDIR=$(pwd)
 fi
 export WORKDIR
 
-if test "$(git rev-parse) --is-shallow-repository)" == true; then
-  git fetch -a --unshallow
+if test "$(git rev-parse) --is-shallow-repository)" == true ; then
+  git fetch -a --unshallow || exit 1
 else
-  git fetch -a
+  git fetch -a || exit 1
 fi
 
 if test "$CI_MERGE_REQUEST_PROJECT_URL"
@@ -70,3 +82,7 @@ then
   HEAD=HEAD
 fi
 export HEAD
+
+mkdir -p logs
+
+printf "\033[34mThe preparation of the environment is complete! \033[0m\n"
