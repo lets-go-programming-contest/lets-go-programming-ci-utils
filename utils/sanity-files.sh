@@ -7,8 +7,8 @@ no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
 for file in $no_lab_files; do
     user_changes=$(git log --format="%aE" "$file")
     for user in $user_changes; do
-        if ! grep -q -e "^$user$" MAINTAINERS; then
-          printf "- $file affected by $user\n" >> logs/sanity-files-error-log.txt
+        if ! grep -q "^$user$" MAINTAINERS; then
+          printf "%s affected by %s\n" "$file" "$user" >> logs/sanity-files-error-log.txt
         fi
     done
 done
