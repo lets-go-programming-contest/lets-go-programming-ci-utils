@@ -39,6 +39,11 @@ for task in $tasks; do
       add_in_total "$task"
       ;;
     *)
+      if [ ! -f "$student/$task/go.mod" ]; then
+        echo "The solution directory is not a Go module" > "logs/lint-$task-error-log.txt"
+        add_in_total "$task"
+        continue
+      fi
       for main_file in $(find "$student/$task/cmd" -name "main.go"); do
         service_dir=$(dirname "$main_file")
         service_name=$(basename "$service_dir")

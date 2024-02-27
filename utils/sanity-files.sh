@@ -4,11 +4,19 @@
 
 no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
 
-if test "${no_lab_files}"; then
-  cat >&2 <<EOF
-Affected CI/CD infrastructure files:
-$(echo ${no_lab_files} | awk '{print "\t- " $1}')
-Please, tidy up the files you're not allowed to touch before adding changes!
+for file in $no_lab_files; do
+    user_changes=$(git log --format="%aE" "$file")
+    for user in $user_changes; do
+        if ! grep -q -e "^$user$" MAINTAINERS; then
+          printf "- $file affected by $user\n" >> logs/sanity-files-error-log.txt
+        fi
+    done
+done
+
+if [ -s "logs/sanity-files-error-log.txt" ]; then
+    cat >&2 <<EOF
+The following root files are affected:
+$(cat logs/sanity-files-error-log.txt | awk '{print "\t- " $0}')
 EOF
   exit 1
 fi
