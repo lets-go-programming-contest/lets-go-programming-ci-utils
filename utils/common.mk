@@ -18,6 +18,3 @@ custom-tests:
 
 lint:
 	bash ${TEST_DIR_UTILS}/lint.sh
-
-some:
-	bash ${TEST_DIR_UTILS}/some.sh
