@@ -3,7 +3,7 @@
 . "$TEST_DIR_UTILS/common.sh"
 
 add_in_total() {
-  if [ -s "logs/unit-tests-$1-error-log.txt" ]; then
+  if [ $? -ne 0 ] || [ -s "logs/unit-tests-$1-error-log.txt" ]; then
     echo "$1...FAILED" >> total_unit-tests.txt
   else
     echo "$1...OK" >> total_unit-tests.txt
@@ -43,7 +43,9 @@ for task in $tasks; do
         add_in_total "$task"
         continue
       fi
-      go -C "$student/$task" test -v -cover ./... > "logs/unit-tests-$task-log.txt" 2> "logs/unit-tests-$task-error-log.txt"
+      export BUILD_BIN="${WORKDIR}/bin/${task}/"
+      export STATIC_DIR="${TEST_DIR_COMMON}/{$task}"
+      go -C "$student/$task" test -v -cover ./... > "logs/unit-tests-$task-trace.txt" 2> "logs/unit-tests-$task-error-log.txt"
       add_in_total "$task"
     ;;
   esac

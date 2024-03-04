@@ -28,7 +28,7 @@ for task in $tasks; do
     *)
       if [ -s "$TEST_DIR_COMMON/$task/Makefile" ] && grep -q "custom:" "$TEST_DIR_COMMON/$task/Makefile"; then
         make -C "$TEST_DIR_COMMON/$task" --no-print-directory \
-              BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" \
+              BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" STATIC="${TEST_DIR_COMMON}/${task}"  \
               custom > "logs/custom-tests-$task-log.txt" 2> "logs/custom-tests-$task-error-log.txt"
         add_in_total "$task"
       else

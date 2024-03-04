@@ -28,19 +28,19 @@ for task in $tasks; do
       ;;
     make)
       make -C "$TEST_DIR_COMMON/$task" --no-print-directory \
-        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" \
+        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" STATIC="${TEST_DIR_COMMON}/${task}" \
         build > "logs/build-$task-log.txt" 2> "logs/build-$task-error-log.txt"
       add_in_total "$task"
       ;;
     student)
       make -C "$student/$task" --no-print-directory \
-        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" \
+        BIN="$WORKDIR/bin/$task" DIR="$WORKDIR/$student/$task" STATIC="${TEST_DIR_COMMON}/${task}" \
         build > "logs/build-$task-log.txt" 2> "logs/build-$task-error-log.txt"
       add_in_total "$task"
       ;;
     *)
       if [ ! -f "$student/$task/go.mod" ]; then
-        echo "The solution directory is not a Go module" > "logs/lint-$task-error-log.txt"
+        echo "The solution directory is not a Go module" > "logs/build-$task-error-log.txt"
         add_in_total "$task-$service_name"
         continue
       fi

@@ -21,7 +21,7 @@ fi
 home=$(pwd)
 # Проходим по каждой задаче
 for task in $tasks; do
-  mode=$(get_cfg_value "$TEST_DIR_COMMON/$task/ci.cfg" "UNIT_TESTS_MODE")
+  mode=$(get_cfg_value "$TEST_DIR_COMMON/$task/ci.cfg" "LINT_MODE")
   case $mode in
     none)
       echo "Mode is set to NONE, skip" > "logs/lint-$task-log.txt"
