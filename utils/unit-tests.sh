@@ -44,7 +44,7 @@ for task in $tasks; do
         continue
       fi
       export BUILD_BIN="${WORKDIR}/bin/${task}/"
-      export STATIC_DIR="${TEST_DIR_COMMON}/{$task}"
+      export STATIC_DIR="${TEST_DIR_COMMON}/${task}"
       go -C "$student/$task" test -v -cover ./... > "logs/unit-tests-$task-trace.txt" 2> "logs/unit-tests-$task-error-log.txt"
       add_in_total "$task"
     ;;
