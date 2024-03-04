@@ -103,7 +103,7 @@ func main() {
 ```
 ```go
 // common/task-<task-name>/tests/main_test.go
-package main
+package ci
 
 import (
 	"fmt"
