@@ -10,7 +10,7 @@ EOF
 no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
 
 for file in $no_lab_files; do
-    users=$(get_log "$HEAD" "$file" '%aN')
+    users=$(get_log "$HEAD" "$file" '%aE')
     for user in $users; do
         if ! grep -q "^$user$" MAINTAINERS; then
           printf "%s affected by %s\n" "$file" "$user" >> logs/sanity-files-error-log.txt

@@ -111,7 +111,7 @@ if test -z "$HEAD"
 then
   HEAD=HEAD
 fi
-printf "HEAD=%s\n", "$HEAD"
+printf "HEAD=%s\n" "$HEAD"
 export HEAD
 
 mkdir -p logs
