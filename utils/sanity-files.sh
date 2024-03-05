@@ -5,8 +5,8 @@
 no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
 
 for file in $no_lab_files; do
-    user_changes=$(git log --format="%aE" "$file")
-    for user in $user_changes; do
+    users=$(get_log "$HEAD" "$file" '%aN')
+    for user in $users; do
         if ! grep -q "^$user$" MAINTAINERS; then
           printf "%s affected by %s\n" "$file" "$user" >> logs/sanity-files-error-log.txt
         fi
@@ -29,5 +29,5 @@ $(echo ${lab_files} | awk '{print "\t- " $1}')
 EOF
   exit 0
 else
-  printf 'Warning: Lab files is not represented in this commit...'
+  printf 'Warning: Lab files is not represented in this commit...\n'
 fi

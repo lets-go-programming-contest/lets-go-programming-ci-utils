@@ -14,6 +14,26 @@ get_diff() {
   echo "$changes"
 }
 
+get_log() {
+    local head="$1"
+    local files="$2"
+    local format="$3"
+    if test "$files"
+    then
+        files="-- $files"
+    fi
+    if test "$format"
+    then
+        format="--format=$format"
+    fi
+    local changes="$(git log $format "$BASE_BRANCH"..."$head" $files)"
+    if test -z "$changes"
+    then
+        changes="$(git log $format "$head^..$head" $files)"
+    fi
+    echo "$changes"
+}
+
 get_labs_files() {
   local head="$1"
   local files=$(get_diff "$head" | grep -E "$LAB_FILES_REGEXP_PATTERN")
@@ -64,8 +84,10 @@ if test "$CI_MERGE_REQUEST_PROJECT_URL"
 then
     if git remote | grep 'main' > /dev/null 2>&1
     then
+        echo "Remove main repo..."
         git remote remove main || exit 1
     fi
+    echo "Adding main repo $CI_MERGE_REQUEST_PROJECT_URL..."
     git remote add main "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH" || exit 1
     git fetch main || exit 1
     BASE_BRANCH=main/master

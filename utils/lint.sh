@@ -15,7 +15,7 @@ tasks=$(get_tasks "${HEAD}" "${student}")
 
 if [ -z "$tasks" ]; then
   echo "No solutions provided, add the solutions to the task directories to continue!" >&2
-  exit 0
+  exit 1
 fi
 
 home=$(pwd)
