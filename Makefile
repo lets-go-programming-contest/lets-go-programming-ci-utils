@@ -1,7 +1,7 @@
 DOCKER_CONTAINER_NAME?=spbstu-2024-lgp-ci
 DOCKER_LOGIN?=andrianovartemii
 DOCKER_FILE_PATH?=deployment/docker/Dockerfile
-COMMON_REPO_URL?=https://gitlab.com/lets-go-programming/lgp-ci-common.git
+COMMON_REPO_URL?=
 TAG?=
 
 
