@@ -91,7 +91,7 @@ then
     then
         git remote remove main || exit 1
     fi
-    printf "Add %s as main/master" "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH"
+    printf "Add %s as main/master\n" "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH"
     git remote add main "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH" || exit 1
     git fetch main || exit 1
     BASE_BRANCH=main/master
@@ -103,10 +103,15 @@ then
 fi
 export BASE_BRANCH
 
+if test -z "$CI_MERGE_REQUEST_SOURCE_BRANCH_SHA"
+then
+  HEAD="$CI_MERGE_REQUEST_SOURCE_BRANCH_SHA"
+fi
 if test -z "$HEAD"
 then
   HEAD=HEAD
 fi
+printf "HEAD=%s\n", "$HEAD"
 export HEAD
 
 mkdir -p logs
