@@ -91,6 +91,7 @@ then
     then
         git remote remove main || exit 1
     fi
+    printf "Add %s as main/master" "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH"
     git remote add main "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH" || exit 1
     git fetch main || exit 1
     BASE_BRANCH=main/master

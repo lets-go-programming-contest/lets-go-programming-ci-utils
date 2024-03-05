@@ -2,6 +2,12 @@
 
 . "$TEST_DIR_UTILS/common.sh"
 
+  cat >&1 <<EOF
+Affected files lists:
+$(get_diff "$HEAD" | awk '{print "\t- " $1}')
+
+EOF
+
 no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
 
 for file in $no_lab_files; do
@@ -23,7 +29,7 @@ fi
 
 lab_files=$(get_labs_files "$HEAD")
 if test "${lab_files}"; then
-  cat >&2 <<EOF
+  cat >&1 <<EOF
 The following lab files are submitted for checking:
 $(echo ${lab_files} | awk '{print "\t- " $1}')
 EOF
