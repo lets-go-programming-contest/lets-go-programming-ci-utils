@@ -5,7 +5,6 @@
   cat >&1 <<EOF
 Affected files lists:
 $(get_diff "$HEAD" | awk '{print "\t- " $1}')
-
 EOF
 
 no_lab_files=$(get_diff "$HEAD" | grep -v -E "$LAB_FILES_REGEXP_PATTERN")
@@ -28,12 +27,6 @@ EOF
 fi
 
 lab_files=$(get_labs_files "$HEAD")
-if test "${lab_files}"; then
-  cat >&1 <<EOF
-The following lab files are submitted for checking:
-$(echo ${lab_files} | awk '{print "\t- " $1}')
-EOF
-  exit 0
-else
+if test -z "${lab_files}"; then
   printf 'Warning: Lab files is not represented in this commit...\n'
 fi
