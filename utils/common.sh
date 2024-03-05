@@ -69,8 +69,10 @@ print_copyright() {
 print_copyright
 printf "\033[34mPreparing the environment for execution... \033[0m\n"
 
-printf "Download common from %s" "$COMMON_REPO_URL"
-git clone "$COMMON_REPO_URL" "$TEST_DIR_COMMON"
+if test -z "$COMMON_REPO_URL"; then
+  printf "Download common from %s" "$COMMON_REPO_URL"
+  git clone "$COMMON_REPO_URL" "$TEST_DIR_COMMON"
+fi
 
 if test -z "$WORKDIR"; then
   WORKDIR=$(pwd)
