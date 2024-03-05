@@ -41,7 +41,7 @@ for task in $tasks; do
     *)
       if [ ! -f "$student/$task/go.mod" ]; then
         echo "The solution directory is not a Go module" > "logs/build-$task-error-log.txt"
-        add_in_total "$task-$service_name"
+        add_in_total "$task"
         continue
       fi
       for main_file in $(find "$student/$task/cmd" -name "main.go"); do
