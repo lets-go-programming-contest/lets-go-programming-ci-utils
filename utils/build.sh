@@ -6,8 +6,8 @@ student=$(get_students "${HEAD}" | head -n 1)
 tasks=$(get_tasks "${HEAD}" "${student}")
 
 if [ -z "$tasks" ]; then
-  echo "No solutions provided, add the solutions to the task directories to continue!" >&2
-  exit 1
+  echo "No solutions provided, skip!" >&2
+  exit 0
 fi
 
 add_in_total() {

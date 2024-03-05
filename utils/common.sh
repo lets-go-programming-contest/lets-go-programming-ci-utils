@@ -70,7 +70,7 @@ print_copyright
 printf "\033[34mPreparing the environment for execution... \033[0m\n"
 
 if test "$COMMON_REPO_URL"; then
-  printf "Download common from %s" "$COMMON_REPO_URL"
+  printf "Download common from %s\n" "$COMMON_REPO_URL"
   git clone "$COMMON_REPO_URL" "$TEST_DIR_COMMON"
 fi
 

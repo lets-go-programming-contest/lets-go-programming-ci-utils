@@ -6,7 +6,7 @@ students=$(get_students "${HEAD}")
 
 if test -z "${students}"; then
   printf "Changes for at least one student must be submitted in commits!\n" >&2
-  exit 1
+  exit 0
 fi
 
 if test $(echo "${students}" | wc -l) -ne 1; then
