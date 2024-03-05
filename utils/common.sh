@@ -69,6 +69,9 @@ print_copyright() {
 print_copyright
 printf "\033[34mPreparing the environment for execution... \033[0m\n"
 
+printf "Download common from %s" "$COMMON_REPO_URL"
+git clone "$COMMON_REPO_URL" "$TEST_DIR_COMMON"
+
 if test -z "$WORKDIR"; then
   WORKDIR=$(pwd)
 fi
@@ -84,10 +87,8 @@ if test "$CI_MERGE_REQUEST_PROJECT_URL"
 then
     if git remote | grep 'main' > /dev/null 2>&1
     then
-        echo "Remove main repo..."
         git remote remove main || exit 1
     fi
-    echo "Adding main repo $CI_MERGE_REQUEST_PROJECT_URL..."
     git remote add main "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/$CI_MERGE_REQUEST_PROJECT_PATH" || exit 1
     git fetch main || exit 1
     BASE_BRANCH=main/master

@@ -1,8 +1,9 @@
 DOCKER_CONTAINER_NAME?=spbstu-2024-lgp-ci
 DOCKER_LOGIN?=andrianovartemii
 DOCKER_FILE_PATH?=deployment/docker/Dockerfile
-
+COMMON_REPO_URL?=https://gitlab.com/lets-go-programming/lgp-ci-common.git
 TAG?=
+
 
 build:
 	docker build -t $(DOCKER_CONTAINER_NAME) -f $(DOCKER_FILE_PATH) .
@@ -18,7 +19,6 @@ push: build tag
 docker_workdir=/spbstu-2024-lgp-ci
 docker_args = --rm \
     -v ${PWD}/utils:${docker_workdir}/utils \
-    -v ${PWD}/common:${docker_workdir}/common
 
 bash: build tag
-	docker run -it ${docker_args} $(DOCKER_LOGIN)/$(DOCKER_CONTAINER_NAME):latest bash
+	docker run -it ${docker_args} -e COMMON_REPO_URL=${COMMON_REPO_URL}  $(DOCKER_LOGIN)/$(DOCKER_CONTAINER_NAME):latest bash
