@@ -45,9 +45,10 @@ for task in $tasks; do
         continue
       fi
       for main_file in $(find "$student/$task/cmd" -name "main.go"); do
+        main_file=$(echo "$main_file" | awk -F "$student/$task/" '{print $2}')
         service_dir=$(dirname "$main_file")
         service_name=$(basename "$service_dir")
-        go build -o "$WORKDIR/bin/$task/$service_name" "$main_file" > "logs/build-$task-$service_name-log.txt" 2> "logs/build-$task-$service_name-error-log.txt"
+        go -C "$student/$task" build -o "$WORKDIR/bin/$task/$service_name" "$main_file" > "logs/build-$task-$service_name-log.txt" 2> "logs/build-$task-$service_name-error-log.txt"
 
         add_in_total "$task-$service_name"
       done
