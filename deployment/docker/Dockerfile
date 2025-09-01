@@ -1,15 +1,8 @@
-FROM golang:1.21
+FROM golang:1.22.7-alpine
 
-WORKDIR /spbstu-2024-lgp-ci
-
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+RUN apk add --no-cache bash make git
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.0
 RUN golangci-lint --version
 
-ENV TEST_DIR=/spbstu-2024-lgp-ci
-ENV TEST_DIR_UTILS=/spbstu-2024-lgp-ci/utils
-ENV TEST_DIR_COMMON=/spbstu-2024-lgp-ci/common
-ENV TEST_MAKEFILE=/spbstu-2024-lgp-ci/utils/common.mk
-
-COPY utils utils
-
-
+ENV TEST_DIR_COMMON=.ci_utils
+ENV TEST_DIR_UTILS=.ci_common
