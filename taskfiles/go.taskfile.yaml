@@ -1,0 +1,64 @@
+version: "3"
+
+tasks:
+  mod:
+    vars:
+      WORKDIR: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+    preconditions:
+      - sh: "test -f go.mod"
+        msg: "Dir {{ .WORKDIR }} is not Go module." 
+    dir: "{{ .WORKDIR }}"
+    cmds:
+      - echo "Tidy go deps."
+      - go mod tidy
+
+  build:
+    vars:
+      WORKDIR: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+      BIN_NAME: 
+        sh: "basename {{ .TARGET_CMD }}"
+    requires:
+      vars: [TARGET_CMD,OUTPUT]
+    dir: "{{ .WORKDIR }}"
+    deps:
+      - task: mod
+        vars: 
+          WORKDIR: "{{ .WORKDIR }}"
+    preconditions:
+      - sh: "test -d {{ .TARGET_CMD }}"   
+        msg: "Target dir {{ .TARGET_CMD }} not found."
+    cmds:
+      - echo "Build service {{ .BIN_NAME }}"
+      - go build -o {{ .OUTPUT }}/{{ .BIN_NAME }} ./{{ .TARGET_CMD }}
+
+  lint:
+    vars:
+      WORKDIR: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+      CONFIG: '{{ .CONFIG | default "golangci.yaml" }}'
+    dir: "{{ .WORKDIR }}"
+    deps:
+      - task: mod
+        vars: 
+          WORKDIR: "{{ .WORKDIR }}"
+    preconditions:
+      - sh: "test -f {{ .CONFIG }}"
+        msg: "Config file {{ .CONFIG }} not found."
+    cmds:
+      - echo "Run linters with using {{ .CONFIG }} file."
+      - golangci-lint run --config {{ .CONFIG }} ./...
+
+  test:
+    env:
+      BUILD_BIN: "{{ .BUILD_BIN }}"
+      SOURCE_DIR: "{{ .SOURCE_DIR }}"
+      STATIC_DIR: "{{ .STATIC_DIR }}"
+    vars:
+      WORKDIR: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+    dir: "{{ .WORKDIR }}"
+    deps:
+      - task: mod
+        vars:
+          WORKDIR: "{{ .WORKDIR }}"
+    cmds:
+      - echo "Run tests for dir {{ .WORKDIR }}."
+      - go test -v --cover ./...

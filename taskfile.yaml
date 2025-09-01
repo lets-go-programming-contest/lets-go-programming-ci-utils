@@ -1,0 +1,16 @@
+version: "3"
+
+env:
+  UTILS_DIR: '{{ .UTILS_DIR | default ".ci_utils"}}'
+  COMMON_DIR: '{{ .COMMON_DIR | default ".ci_common"}}'
+
+includes:
+  docker: 
+    taskfile: ./deployment/docker/docker.taskfile.yaml
+    dir: ./deployment/docker
+  task:sanity: ./taskfiles/task.sanity.taskfile.yaml  
+  task:build: ./taskfiles/task.build.taskfile.yaml
+  task:lint: ./taskfiles/task.lint.taskfile.yaml
+  task:test: ./taskfiles/task.test.taskfile.yaml
+
+  

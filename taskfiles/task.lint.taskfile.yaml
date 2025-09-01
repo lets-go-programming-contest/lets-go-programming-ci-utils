@@ -1,0 +1,53 @@
+version: "3"
+
+includes: 
+  go: ./go.taskfile.yaml
+
+tasks:
+  lint:none:
+    internal: true
+    requires: 
+      vars: [ CONFIG ]
+    dir: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+    cmds:
+      - cmd: echo "Lint config in {{ .CONFIG }} files not found. Skip."
+        silent: true
+
+  lint:with-config:
+    internal: true
+    requires: 
+      vars: [ CONFIG_PATH, CONFIG_TYPE ]
+    vars:
+      LINT_TASK:
+        sh: |
+          if [[ ! -f {{ .CONFIG_PATH }} ]]; then
+            echo "lint:none"
+          else
+            echo "go:lint"
+          fi
+    dir: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+    cmds:
+      - task: "{{ .LINT_TASK }}"
+        vars:
+          WORKDIR: "{{ .WORKDIR }}"
+          CONFIG: "{{ .CONFIG_PATH }}"
+
+  lint:
+    dir: "{{ .USER_WORKING_DIR }}"
+    requires:
+      vars: [STUDENT_NAME, TASK_NAME]
+    vars:
+      CONFIGS_DESTINATIONS:
+          - type: common
+            path: "{{ .COMMON_DIR }}/{{ .TASK_NAME }}/.golangci.yaml" 
+          - type: student
+            path: "{{ .USER_WORKING_DIR }}/{{ .STUDENT_NAME }}/{{ .TASK_NAME}}/.golangci.yaml"     
+    cmds:
+      - for: 
+          var: "CONFIGS_DESTINATIONS"
+          as: "CONFIG"
+        task: lint:with-config
+        vars:
+          WORKDIR: "{{ .USER_WORKING_DIR }}/{{ .STUDENT_NAME }}/{{ .TASK_NAME }}"
+          CONFIG_PATH: "{{ .CONFIG.path }}"
+          CONFIG_TYPE: "{{ .CONFIG.type }}"

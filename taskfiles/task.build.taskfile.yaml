@@ -1,0 +1,25 @@
+version: "3"
+
+includes: 
+  go: ./go.taskfile.yaml
+
+tasks:
+  build:
+    requires:
+      vars: [STUDENT_NAME,TASK_NAME]
+    vars:
+      SERVICES: 
+        sh: "find {{ .STUDENT_NAME }}/{{ .TASK_NAME }}/cmd -type d -maxdepth 1 -mindepth 1"
+    preconditions:
+      - sh: test {{ len .SERVICES }} -ne 0
+        msg: "Not services in cmd folder."
+    cmds:
+      - echo "Found {{ len (splitList "\n"  .SERVICES) }} targets for build in cmd folder."
+      - for:
+          var: "SERVICES"
+          as: "SERVICE"
+        task: go:build
+        vars:
+          WORKDIR: "{{ .USER_WORKING_DIR }}/{{ .STUDENT_NAME }}/{{ .TASK_NAME }}"
+          TARGET_CMD: "cmd/$(basename {{ .SERVICE}})"
+          OUTPUT: "{{ .USER_WORKING_DIR }}/bin" 

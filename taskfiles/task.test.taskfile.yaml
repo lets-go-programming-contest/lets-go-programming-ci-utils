@@ -1,0 +1,38 @@
+version: "3"
+
+includes: 
+  go: ./go.taskfile.yaml
+
+tasks:
+  copy-files:
+    dir: "{{ .WORKDIR | default .USER_WORKING_DIR }}"
+    internal: true
+    requires:
+      vars: [ SOURCE_DIR, TARGET_DIR ]
+    status:
+      - test -z $(diff -rq "{{ .SOURCE_DIR }}" "{{ .TARGET_DIR }}" 2>/dev/null)
+    preconditions:  
+      - sh: "mkdir -p {{ .TARGET_DIR }}"
+        msg: "Failed to create {{ .TARGET_DIR }}"
+    cmds: 
+      - echo "Copy ci tests to the {{ .TARGET_DIR }}."
+      - cp {{ .SOURCE_DIR }}/* {{ .TARGET_DIR}} 
+
+  test:
+    requires:
+      vars: [ STUDENT_NAME, TASK_NAME ]
+    dir: "{{ .USER_WORKING_DIR }}"
+    cmds:
+      - echo "Prepare test enviroment."
+      - task: copy-files
+        vars:
+          WORKDIR: "{{ .STUDENT_NAME }}/{{ .TASK_NAME }}"
+          SOURCE_DIR: "{{ .COMMON_DIR }}/{{ .TASK_NAME }}/tests"
+          TARGET_DIR: "tests/ci"
+      - echo "Run go tests."
+      - task: go:test
+        vars:
+          WORKDIR: "{{ .STUDENT_NAME }}/{{ .TASK_NAME }}"
+          BUILD_BIN: 'bin'
+          SOURCE_DIR: '{{ printf "%s/%s" .STUDENT_NAME .TASK_NAME }}'
+          STATIC_DIR: '{{ printf "%s/%s" .COMMON_DIR .TASK_NAME }}'
