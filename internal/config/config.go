@@ -29,6 +29,7 @@ func ReadConfig(configFile string) (Config, error) {
 	v := viper.New()
 	v.SetConfigFile(configFile)
 	v.SetConfigType("yaml")
+
 	if err := v.ReadInConfig(); err != nil {
 		return Config{}, fmt.Errorf("read task configuration: %w", err)
 	}

@@ -16,6 +16,7 @@ const (
 	failExitMode exitMode = "fail"
 )
 
+//revive:disable:deep-exit // Use this test function for check exec wrapper. Exit statuses is required.
 func TestHelperProcess(*testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
 		return
@@ -75,12 +76,11 @@ func TestExecCommand(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				var execError *executor.ExecError
+
 				require.ErrorAs(t, err, &execError)
 				require.Equal(t, os.Args[0], execError.CommandName)
 				require.Equal(t, args, execError.CommandArgs)
 			}
-
 		})
 	}
-
 }

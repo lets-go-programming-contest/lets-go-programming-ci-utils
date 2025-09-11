@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -12,11 +13,6 @@ import (
 )
 
 const cliOutputNameFlag = "output"
-
-type (
-	errMakeTargetFromCommonFiles  error
-	errMakeTargetFromStudentFiles error
-)
 
 func must[T any](v T, err error) T {
 	if err != nil {
@@ -57,8 +53,10 @@ func runSkip() func(*cobra.Command, []string) error {
 }
 
 func NewModuleCmd(opts ...func(cmd *cobra.Command)) *cobra.Command {
+	//nolint:exhaustruct // Set defaults values for another fields.
 	moduleCmd := &cobra.Command{
-		Use: "module",
+		Use:   "module",
+		Short: "A set of commands for working with Go modules.",
 	}
 
 	moduleCmd.AddCommand(newBuildCmd(initOutputFlag))
@@ -87,7 +85,7 @@ func runMakeFromCommon(
 	return func(cmd *cobra.Command, _ []string) error {
 		commonDirPath, err := envs.GetCommonDirFromEnv()
 		if err != nil {
-			return err
+			return fmt.Errorf("get common dir path from env: %w", err)
 		}
 
 		var (
@@ -98,7 +96,10 @@ func runMakeFromCommon(
 		)
 
 		if err := runMakeTarget(ctx, student, task, makeFilePath, target); err != nil {
-			return processErr(student, task, errMakeTargetFromCommonFiles(err))
+			var accessErr *module.AccessMakefileError
+			if errors.As(err, &accessErr) {
+				return accessErr
+			}
 		}
 
 		return nil
@@ -116,11 +117,7 @@ func runMakeFromStudent(
 			ctx          = context.Background()
 		)
 
-		if err := runMakeTarget(ctx, student, task, makeFilePath, target); err != nil {
-			return processErr(student, task, errMakeTargetFromStudentFiles(err))
-		}
-
-		return nil
+		return runMakeTarget(ctx, student, task, makeFilePath, target)
 	}
 }
 
@@ -138,7 +135,7 @@ func runMakeTarget(
 		return fmt.Errorf("get go module: %w", err)
 	}
 
-	if err := mod.RunMakeForModule(context.Background(), makefilePath, target); err != nil {
+	if err := mod.RunMakeForModule(ctx, makefilePath, target); err != nil {
 		return fmt.Errorf("run make target: %w", err)
 	}
 

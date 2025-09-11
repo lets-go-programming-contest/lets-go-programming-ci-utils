@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	errGetEnviroment  = errors.New("get enviroment variables")
+	errGetEnviroment  = errors.New("get environment variables")
 	ErrRunMakeTarget  = errors.New("run target from makefile")
 	ErrBuildTargets   = errors.New("build module targets")
 	ErrLintTargets    = errors.New("lint module")
@@ -121,7 +121,7 @@ func (s service) RunBuildModuleTargets(
 func getGolangciLintConfigPaths(
 	dirs ...string,
 ) []string {
-	lintConfigFiles := make([]string, 0, 2)
+	lintConfigFiles := make([]string, 0, len(dirs))
 
 	for _, dir := range dirs {
 		configPath := filepath.Join(dir, golangciLintConfigName)
@@ -151,6 +151,7 @@ func (s service) RunLintModule(
 
 	for _, config := range golangciLintConfigs {
 		fmt.Printf("Run linters with %q config file.\n", config)
+
 		if err := s.mod.LintModule(ctx, config); err != nil {
 			return fmt.Errorf("%w: %w", ErrLintTargets, err)
 		}

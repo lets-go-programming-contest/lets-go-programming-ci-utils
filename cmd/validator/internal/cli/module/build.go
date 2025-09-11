@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/config"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/module"
@@ -11,8 +12,8 @@ import (
 
 const makeFileBuildTarget = "build"
 
-var buildModeGetterFunc = func(config config.Config) config.Mode {
-	return config.BuildMode.Mode
+var buildModeGetterFunc = func(cfg config.Config) config.Mode {
+	return cfg.BuildMode.Mode
 }
 
 var buildFuncMapper = map[config.Mode]runEFunc{
@@ -23,9 +24,10 @@ var buildFuncMapper = map[config.Mode]runEFunc{
 }
 
 func newBuildCmd(opts ...func(cmd *cobra.Command)) *cobra.Command {
+	//nolint:exhaustruct // Set defaults values for another fields.
 	buildCmd := &cobra.Command{
 		Use:   "build",
-		Short: "Build student task",
+		Short: "Build all targets in current module",
 		RunE:  selectorRun(buildFuncMapper, buildModeGetterFunc),
 	}
 
@@ -44,15 +46,19 @@ func runDefaultBuildCmd(cmd *cobra.Command, _ []string) error {
 		task      = getTaskName(cmd.Flags())
 		outputDir = getOutputDir(cmd.Flags())
 	)
+
 	srv, err := service.NewService(
 		student,
 		task,
 		module.WithTargetsCalculation(),
 	)
-
-	if err := processErr(student, task, err); err != nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("create service: %w", err)
 	}
 
-	return processErr(student, task, srv.RunBuildModuleTargets(context.Background(), outputDir))
+	if err := srv.RunBuildModuleTargets(context.Background(), outputDir); err != nil {
+		return fmt.Errorf("build stage: %w", err)
+	}
+
+	return nil
 }

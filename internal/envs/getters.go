@@ -1,14 +1,20 @@
 package envs
 
 import (
+	"errors"
 	"fmt"
 	"os"
+)
+
+var (
+	errEnvNotSet       = errors.New("env value not set")
+	errCommonDirIsFile = errors.New("common dir path target is a files")
 )
 
 func GetCommonDirFromEnv() (string, error) {
 	dir := os.Getenv("COMMON_DIR")
 	if dir == "" {
-		return "", fmt.Errorf("common dir path not set")
+		return "", fmt.Errorf("%w: %q", errEnvNotSet, "COMMON_DIR")
 	}
 
 	info, err := os.Stat(dir)
@@ -17,7 +23,7 @@ func GetCommonDirFromEnv() (string, error) {
 	}
 
 	if !info.IsDir() {
-		return "", fmt.Errorf("common dir is not a dir")
+		return "", errCommonDirIsFile
 	}
 
 	return dir, nil

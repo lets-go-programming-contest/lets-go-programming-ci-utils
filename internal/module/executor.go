@@ -3,7 +3,6 @@ package module
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 )
 
 type baseExecutor interface {
@@ -22,7 +21,7 @@ func newExecutor(baseExecutor baseExecutor) moduleExecutor {
 
 func (e moduleExecutor) updateModuleDeps(ctx context.Context) error {
 	if err := e.baseExecutor.ExecCommand(ctx, "go", "mod", "tidy"); err != nil {
-		return fmt.Errorf("%w: %w", ErrUpdateModuleDeps, err)
+		return fmt.Errorf("update module deps: %w", err)
 	}
 
 	return nil
@@ -33,14 +32,6 @@ func (e moduleExecutor) buildTarget(ctx context.Context,
 	targetName string,
 	targetPath string,
 ) error {
-	if !filepath.IsAbs(outputPath) {
-		return fmt.Errorf("%w: output path %q", errRelativePath, outputPath)
-	}
-
-	if !filepath.IsAbs(targetPath) {
-		return fmt.Errorf("%w: target path %q", errRelativePath, targetPath)
-	}
-
 	if err := e.baseExecutor.ExecCommand(
 		ctx,
 		"go",
@@ -48,19 +39,18 @@ func (e moduleExecutor) buildTarget(ctx context.Context,
 		"-o", outputPath,
 		targetPath,
 	); err != nil {
-		return fmt.Errorf("%w: %w", newBuildTargetError(targetName), err)
+		return fmt.Errorf("build module target %q: %w", targetName, err)
 	}
 
 	return nil
 }
 
-func (e moduleExecutor) lintModuleFiles(ctx context.Context, configPath string) error {
-	if !filepath.IsAbs(configPath) {
-		return fmt.Errorf("config path %q must be absolute", configPath)
-	}
-
+func (e moduleExecutor) lintModuleFiles(
+	ctx context.Context,
+	configPath string,
+) error {
 	if err := e.baseExecutor.ExecCommand(ctx, "golangci-lint", "run", "--config", configPath); err != nil {
-		return fmt.Errorf("%w: %w", newLintError(configPath), err)
+		return fmt.Errorf("lint module with using config path %q: %w", configPath, err)
 	}
 
 	return nil
@@ -68,19 +58,24 @@ func (e moduleExecutor) lintModuleFiles(ctx context.Context, configPath string) 
 
 func (e moduleExecutor) testModuleFiles(ctx context.Context) error {
 	if err := e.baseExecutor.ExecCommand(ctx, "go", "test", "-v", "--cover", "./..."); err != nil {
-		return fmt.Errorf("%w: %w", ErrTestModule, err)
+		return fmt.Errorf("test module: %w", err)
 	}
 
 	return nil
 }
 
-func (e moduleExecutor) runMakeForMakefile(ctx context.Context, makefilePath string, target string, args ...string) error {
-	if !filepath.IsAbs(makefilePath) {
-		return fmt.Errorf("%w: makefile path %q", errRelativePath, makefilePath)
-	}
-
-	if err := e.baseExecutor.ExecCommand(ctx, "make", append([]string{"-f", makefilePath, target}, args...)...); err != nil {
-		return fmt.Errorf("%w: %w", newRunMakeTargetError(makefilePath, target), err)
+func (e moduleExecutor) runMakeForMakefile(
+	ctx context.Context,
+	makefilePath string,
+	target string,
+	args ...string,
+) error {
+	if err := e.baseExecutor.ExecCommand(
+		ctx,
+		"make",
+		append([]string{"-f", makefilePath, target}, args...)...,
+	); err != nil {
+		return fmt.Errorf("run target %q from makefile %q: %w", target, makefilePath, err)
 	}
 
 	return nil

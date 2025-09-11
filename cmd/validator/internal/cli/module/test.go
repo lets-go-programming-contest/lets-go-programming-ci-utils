@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/config"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/module"
@@ -21,15 +22,16 @@ var (
 		config.DefaultMode: runDefaultTestCmd,
 	}
 
-	testModeGetterFunc = func(config config.Config) config.Mode {
-		return config.TestMode.Mode
+	testModeGetterFunc = func(cfg config.Config) config.Mode {
+		return cfg.TestMode.Mode
 	}
 )
 
 func newTestCmd() *cobra.Command {
+	//nolint:exhaustruct // Set defaults values for another fields.
 	testCmd := &cobra.Command{
 		Use:   "test",
-		Short: "Test student task",
+		Short: "Run tests for current module with using common tests",
 		RunE:  selectorRun(testFuncMapper, testModeGetterFunc),
 	}
 
@@ -47,9 +49,13 @@ func runDefaultTestCmd(cmd *cobra.Command, _ []string) error {
 		task,
 		module.WithTargetsCalculation(),
 	)
-	if err := processErr(student, task, err); err != nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("create service: %w", err)
 	}
 
-	return processErr(student, task, srv.RunTestModule(context.Background()))
+	if err := srv.RunTestModule(context.Background()); err != nil {
+		return fmt.Errorf("test stage: %w", err)
+	}
+
+	return nil
 }

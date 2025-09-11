@@ -8,10 +8,16 @@ import (
 )
 
 type (
-	runEFunc   func(cmd *cobra.Command, args []string) error
-	funcMapper map[config.Mode]runEFunc
+	runEFunc      func(cmd *cobra.Command, args []string) error
+	funcMapper    map[config.Mode]runEFunc
 	funcGetModule func(cfg config.Config) config.Mode
 )
+
+type unsupportedRunModeError string
+
+func (e unsupportedRunModeError) Error() string {
+	return fmt.Sprintf("unsupported mode %q for current stage", string(e))
+}
 
 func selectorRun(
 	runsMapper funcMapper,
@@ -27,7 +33,7 @@ func selectorRun(
 
 		runFunc, ok := runsMapper[runMode]
 		if !ok {
-			return fmt.Errorf("unsupported mode %q for current stage", runMode)
+			return unsupportedRunModeError(runMode)
 		}
 
 		return runFunc(cmd, args)

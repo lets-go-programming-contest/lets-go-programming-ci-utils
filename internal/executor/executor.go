@@ -6,65 +6,47 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"syscall"
 )
 
-type ExecutorOpts func(cmd *exec.Cmd)
+type Opts func(cmd *exec.Cmd)
 
 type executor struct {
-	opts []ExecutorOpts
+	opts []Opts
 }
 
-func NewExecutor(opts ...ExecutorOpts) executor {
+func NewExecutor(opts ...Opts) executor {
 	return executor{
 		opts: opts,
 	}
 }
 
-func ExecWithDir(dir string) ExecutorOpts {
+func ExecWithDir(dir string) Opts {
 	return func(cmd *exec.Cmd) {
 		cmd.Dir = dir
 	}
 }
 
-func ExecWithOutput(stdout io.Writer) ExecutorOpts {
+func ExecWithOutput(stdout io.Writer) Opts {
 	return func(cmd *exec.Cmd) {
 		cmd.Stdout = stdout
 	}
 }
 
-func ExecWithErrorOutput(stderr io.Writer) ExecutorOpts {
+func ExecWithErrorOutput(stderr io.Writer) Opts {
 	return func(cmd *exec.Cmd) {
 		cmd.Stderr = stderr
 	}
 }
 
-func ExecWithUserCredential(uid, gid uint32) ExecutorOpts {
-	return func(cmd *exec.Cmd) {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Credential: &syscall.Credential{
-				Uid: uid,
-				Gid: gid,
-			},
-		}
-	}
-}
-
-func ExecWithEnvs(envsMapper map[string]string) ExecutorOpts {
+func ExecWithEnvs(envsMapper map[string]string) Opts {
 	return func(cmd *exec.Cmd) {
 		envsSlice := make([]string, 0, len(envsMapper))
 		for name, val := range envsMapper {
 			envsSlice = append(envsSlice, fmt.Sprintf("%s=%s", name, val))
 		}
+
 		cmd.Env = append(os.Environ(), envsSlice...)
 	}
-}
-
-func ExecWithCurrentUser() ExecutorOpts {
-	return ExecWithUserCredential(
-		uint32(syscall.Getuid()),
-		uint32(syscall.Getgid()),
-	)
 }
 
 func (e executor) ExecCommand(
@@ -74,7 +56,7 @@ func (e executor) ExecCommand(
 ) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 
-	opts := make([]ExecutorOpts, 0, len(e.opts))
+	opts := make([]Opts, 0, len(e.opts))
 	opts = append(opts, e.opts...)
 	opts = append(opts, GetExecutorOpts(ctx)...)
 
@@ -85,9 +67,9 @@ func (e executor) ExecCommand(
 	}
 
 	fmt.Printf("⇒ The following output refers to the execution of a command %q in an external process.\n", name)
-	err := cmd.Run()
-	fmt.Printf("⇒ End of output from a command run in an external process %q.\n", name)
-	if err != nil {
+	defer fmt.Printf("⇒ End of output from a command run in an external process %q.\n", name)
+
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%w: %w", NewExecError(name, args), err)
 	}
 

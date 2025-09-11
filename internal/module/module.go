@@ -9,6 +9,8 @@ import (
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/executor"
 )
 
+const outputDirPerms = 0o755
+
 type module struct {
 	modulePath string
 	targets    map[string]string
@@ -17,7 +19,9 @@ type module struct {
 
 func checkModule(modulePath string) error {
 	if _, err := os.Stat(filepath.Join(modulePath, "go.mod")); err != nil {
-		return ErrPathNotModule
+		return &PathNoGoModuleError{
+			modulePath: modulePath,
+		}
 	}
 
 	return nil
@@ -25,9 +29,13 @@ func checkModule(modulePath string) error {
 
 func calculateModuleTargets(modulePath string) (map[string]string, error) {
 	moduleTargetsSubdir := filepath.Join(modulePath, "cmd")
+
 	entries, err := os.ReadDir(moduleTargetsSubdir)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCmdDirNotFound, err)
+		return nil, &TargetsNotFoundError{
+			modulePath: modulePath,
+			reason:     fmt.Errorf("%w: %w", errCmdDirNotFound, err),
+		}
 	}
 
 	targets := make(map[string]string)
@@ -36,8 +44,9 @@ func calculateModuleTargets(modulePath string) (map[string]string, error) {
 		if entry.IsDir() {
 			absTargetPath, err := filepath.Abs(filepath.Join(modulePath, "cmd", entry.Name()))
 			if err != nil {
-				return nil, fmt.Errorf("%w: target path %q: %w", errCalculateAbsPath, entry, err)
+				return nil, fmt.Errorf("calculate abs target path %q: %w", entry, err)
 			}
+
 			targets[entry.Name()] = absTargetPath
 		}
 	}
@@ -81,7 +90,7 @@ func NewPlainModuleWithExecutor(
 ) (module, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {
-		return module{}, fmt.Errorf("%w: module path: %w", errCalculateAbsPath, err)
+		return module{}, fmt.Errorf("calculate abs module path %q: %w", modulePath, err)
 	}
 
 	if err := checkModule(absModulePath); err != nil {
@@ -110,7 +119,14 @@ func (m module) UpdateModuleDeps(
 ) error {
 	ctx = executor.WithExecutorOpts(ctx, executor.ExecWithDir(m.modulePath))
 
-	return m.executor.updateModuleDeps(ctx)
+	if err := m.executor.updateModuleDeps(ctx); err != nil {
+		return &UpdateModuleDepsError{
+			modulePath: m.modulePath,
+			reason:     err,
+		}
+	}
+
+	return nil
 }
 
 func (m module) BuildModuleTargets(
@@ -124,21 +140,28 @@ func (m module) BuildModuleTargets(
 	}
 
 	if len(m.targets) == 0 {
-		return ErrNothingToBuild
+		return &TargetsNotFoundError{
+			modulePath: m.modulePath,
+			reason:     errNothingToBuild,
+		}
 	}
 
 	abOutputDir, err := filepath.Abs(outputDir)
 	if err != nil {
-		return fmt.Errorf("%w: output dir %q: %w", errCalculateAbsPath, outputDir, err)
+		return fmt.Errorf("calculate abs output dir path %q: %w", outputDir, err)
 	}
 
-	if err := os.MkdirAll(abOutputDir, 0o755); err != nil {
-		return fmt.Errorf("%w: output dir %q: %w", errPrepareOutputDir, abOutputDir, err)
+	if err := os.MkdirAll(abOutputDir, outputDirPerms); err != nil {
+		return fmt.Errorf("prepare output dir %q: %w", abOutputDir, err)
 	}
 
 	for targetName, targetPath := range m.targets {
 		if err := m.executor.buildTarget(ctx, abOutputDir, targetName, targetPath); err != nil {
-			return err
+			return &BuildTargetError{
+				modulePath: m.modulePath,
+				targetName: targetName,
+				reason:     err,
+			}
 		}
 	}
 
@@ -154,7 +177,14 @@ func (m module) TestModule(
 		return err
 	}
 
-	return m.executor.testModuleFiles(ctx)
+	if err := m.executor.testModuleFiles(ctx); err != nil {
+		return &TestModuleError{
+			modulePath: m.modulePath,
+			reason:     err,
+		}
+	}
+
+	return nil
 }
 
 func (m module) LintModule(
@@ -169,10 +199,18 @@ func (m module) LintModule(
 
 	absConfigPath, err := filepath.Abs(config)
 	if err != nil {
-		return fmt.Errorf("%w: golangci-lint config %q: %w", errCalculateAbsPath, config, err)
+		return fmt.Errorf("calculate abs golangci-lint config path %q: %w", config, err)
 	}
 
-	return m.executor.lintModuleFiles(ctx, absConfigPath)
+	if err := m.executor.lintModuleFiles(ctx, absConfigPath); err != nil {
+		return &LintModuleError{
+			modulePath: m.modulePath,
+			configFile: config,
+			reason:     err,
+		}
+	}
+
+	return nil
 }
 
 func (m module) RunMakeForModule(
@@ -185,22 +223,37 @@ func (m module) RunMakeForModule(
 
 	absMakeFilePath, err := filepath.Abs(makefilePath)
 	if err != nil {
-		return fmt.Errorf("%w: makefile %q: %w", err, makefilePath, err)
+		return fmt.Errorf("calculate abs makefile path %q: %w", makefilePath, err)
 	}
 
 	info, err := os.Stat(absMakeFilePath)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetMakefile, err)
+		return &AccessMakefileError{
+			makefile: makefilePath,
+			reason:   fmt.Errorf("get %q file into: %w", makefilePath, err),
+		}
 	}
 
 	if info.IsDir() {
-		return ErrMakefilePathIsDir
+		return &AccessMakefileError{
+			makefile: makefilePath,
+			reason:   errMakefilePathIsDir,
+		}
 	}
 
-	return m.executor.runMakeForMakefile(
+	if err := m.executor.runMakeForMakefile(
 		ctx,
 		absMakeFilePath,
 		target,
 		args...,
-	)
+	); err != nil {
+		return &MakeTargetError{
+			modulePath: m.modulePath,
+			makefile:   makefilePath,
+			target:     target,
+			reason:     err,
+		}
+	}
+
+	return nil
 }

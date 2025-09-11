@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/envs"
-	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/repository"
+	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/repo"
 )
 
 const (
@@ -22,37 +22,37 @@ const (
 var (
 	taskFilesPattern = fmt.Sprintf("^%s/%s/.+$", studentPattern, taskPattern)
 
-	studentRegexp   = regexp.MustCompile(fmt.Sprintf("^%s", studentPattern))
+	studentRegexp   = regexp.MustCompile("^" + studentPattern)
 	taskRegexp      = regexp.MustCompile(taskPattern)
 	taskFilesRegexp = regexp.MustCompile(taskFilesPattern)
 )
 
-type repo interface {
-	GetChanges(baseRev string, targetRev string) (map[string][]repository.FileChanges, error)
+type repository interface {
+	GetChanges(baseRev string, targetRev string) (map[string][]repo.FileChanges, error)
 }
 
 type service struct {
-	repo      repo
+	repo      repository
 	baseRev   string
 	targetRev string
 }
 
-func NewServiceWithRepo(repo repo, baseRev, targetRev string) (service, error) {
+func NewServiceWithRepo(repository repository, baseRev, targetRev string) (service, error) {
 	return service{
-		repo:      repo,
+		repo:      repository,
 		baseRev:   baseRev,
 		targetRev: targetRev,
 	}, nil
 }
 
 func NewService(repoPath, baseRev, tragetRev string) (service, error) {
-	repo, err := git.PlainOpen(repoPath)
+	gitRepository, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return service{}, fmt.Errorf("open repository: %w", err)
 	}
 
 	return NewServiceWithRepo(
-		repository.NewRepository(repo),
+		repo.NewRepository(gitRepository),
 		baseRev,
 		tragetRev,
 	)
@@ -73,17 +73,28 @@ func getMaintainers(maintainersFile string) ([]string, error) {
 }
 
 func extractFilesFromChanges(
-	changes repository.Changes,
-	isTaskFiles bool,
-) repository.Changes {
-	extracted := make(repository.Changes)
+	changes repo.Changes,
+	matcher func(file string) bool,
+) repo.Changes {
+	extracted := make(repo.Changes)
+
 	for file, fileChanges := range changes {
-		if taskFilesRegexp.MatchString(file) == isTaskFiles {
+		if matcher(file) {
 			extracted[file] = fileChanges
 		}
 	}
 
 	return extracted
+}
+
+func extractTaskFiles(changes repo.Changes) repo.Changes {
+	return extractFilesFromChanges(changes, taskFilesRegexp.MatchString)
+}
+
+func extractNoTaskFiles(changes repo.Changes) repo.Changes {
+	return extractFilesFromChanges(changes, func(file string) bool {
+		return !taskFilesRegexp.MatchString(file)
+	})
 }
 
 func (s service) RunSanityTaskFiles(ctx context.Context) error {
@@ -102,12 +113,13 @@ func (s service) RunSanityTaskFiles(ctx context.Context) error {
 		return fmt.Errorf("get maintainers from common files: %w", err)
 	}
 
-	noTaskFiles := extractFilesFromChanges(changes, false)
-	affected := make([]AffectedNoTaskFilesErrorAffect, 0, len(noTaskFiles))
+	noTaskFiles := extractNoTaskFiles(changes)
+	affected := make([]affect, 0, len(noTaskFiles))
+
 	for file, fileChanges := range noTaskFiles {
 		for _, change := range fileChanges {
 			if !slices.Contains(maintainers, change.Author) {
-				affected = append(affected, AffectedNoTaskFilesErrorAffect{
+				affected = append(affected, affect{
 					File:  file,
 					Email: change.Author,
 					Hash:  change.Hash,
@@ -123,10 +135,10 @@ func (s service) RunSanityTaskFiles(ctx context.Context) error {
 	return nil
 }
 
-func extractStudentsFromChanges(changes repository.Changes) []string {
+func extractStudentsFromChanges(changes repo.Changes) []string {
 	studentsMap := make(map[string]struct{})
 
-	for file := range extractFilesFromChanges(changes, true) {
+	for file := range extractTaskFiles(changes) {
 		if filepath.Dir(file) != "." {
 			if matches := studentRegexp.FindStringSubmatch(file); matches != nil {
 				studentsMap[matches[0]] = struct{}{}
@@ -153,16 +165,18 @@ func (s service) RunSanityStudents(ctx context.Context) (string, error) {
 
 	switch len(students) {
 	case 0:
-		return "", ErrTasksNotRepresented
+		return "", &NoStudentsFoundError{}
 	case 1:
 		return students[0], nil
 	default:
-		return "", NewMultipleStudentsError(students...)
+		return "", &MultipleStudentsError{
+			names: students,
+		}
 	}
 }
 
-func extractTasksFromChanges(changes repository.Changes) []string {
-	taskFiles := extractFilesFromChanges(changes, true)
+func extractTasksFromChanges(changes repo.Changes) []string {
+	taskFiles := extractTaskFiles(changes)
 	if len(taskFiles) == 0 {
 		return nil
 	}
@@ -193,10 +207,12 @@ func (s service) RunSanityTasks(ctx context.Context) (string, error) {
 
 	switch len(tasks) {
 	case 0:
-		return "", ErrTasksNotRepresented
+		return "", &NoTasksFoundError{}
 	case 1:
 		return tasks[0], nil
 	default:
-		return "", NewMultipleTasksError(tasks...)
+		return "", &MultipleStudentsError{
+			names: tasks,
+		}
 	}
 }

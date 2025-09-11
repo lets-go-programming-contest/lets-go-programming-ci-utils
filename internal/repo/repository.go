@@ -1,4 +1,4 @@
-package repository
+package repo
 
 import (
 	"fmt"
@@ -9,25 +9,31 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+type gitRepository interface {
+	ResolveRevision(in plumbing.Revision) (*plumbing.Hash, error)
+	CommitObject(h plumbing.Hash) (*object.Commit, error)
+	Log(o *git.LogOptions) (object.CommitIter, error)
+}
+
 type repository struct {
-	repo *git.Repository
+	gitRepository gitRepository
 }
 
 func NewRepository(
-	repo *git.Repository,
+	gitRepository gitRepository,
 ) repository {
 	return repository{
-		repo: repo,
+		gitRepository: gitRepository,
 	}
 }
 
 func (r repository) getCommit(rev string) (*object.Commit, error) {
-	hash, err := r.repo.ResolveRevision(plumbing.Revision(rev))
+	hash, err := r.gitRepository.ResolveRevision(plumbing.Revision(rev))
 	if err != nil {
 		return nil, fmt.Errorf("resolve rev %q: %w", rev, err)
 	}
 
-	commit, err := r.repo.CommitObject(*hash)
+	commit, err := r.gitRepository.CommitObject(*hash)
 	if err != nil {
 		return nil, fmt.Errorf("get commit with hash %q: %w", hash.String(), err)
 	}
@@ -50,8 +56,8 @@ type FileChanges struct {
 	Author string
 }
 
-func (r repository) getChanges(baseCommit, targetCommit *object.Commit) (Changes, error) {
-	iterator, err := r.repo.Log(&git.LogOptions{
+func (r repository) getFilesDiff(baseCommit, targetCommit *object.Commit) (Changes, error) {
+	iterator, err := r.gitRepository.Log(&git.LogOptions{ //nolint:exhaustruct // Setup only from commit hash for iter.
 		From: targetCommit.Hash,
 	})
 	if err != nil {
@@ -67,7 +73,7 @@ func (r repository) getChanges(baseCommit, targetCommit *object.Commit) (Changes
 
 		parent, err := c.Parent(0)
 		if err != nil {
-			return nil
+			return fmt.Errorf("get parent commit for %q: %w", c.Hash.String(), err)
 		}
 
 		parentTree, err := parent.Tree()
@@ -122,5 +128,5 @@ func (r repository) GetChanges(
 		}
 	}
 
-	return r.getChanges(baseCommit, targetCommit)
+	return r.getFilesDiff(baseCommit, targetCommit)
 }

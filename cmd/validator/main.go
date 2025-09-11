@@ -7,7 +7,6 @@ import (
 
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/cmd/validator/internal/cli/module"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/cmd/validator/internal/cli/sanity"
-	baseErrors "github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +16,6 @@ const (
 	cliTargetRevFlag   = "target"
 	cliStudentNameFlag = "student"
 	cliTaskNameFlag    = "task"
-	cliOutputNameFlag  = "output"
 )
 
 func panicIfErr(err error) {
@@ -27,6 +25,7 @@ func panicIfErr(err error) {
 }
 
 func main() {
+	//nolint:exhaustruct // Set defaults values for another fields.
 	rootCmd := &cobra.Command{
 		Use:           "lgp_validator",
 		SilenceUsage:  true,
@@ -45,23 +44,24 @@ func main() {
 
 	initConfigFlag(rootCmd)
 
+	var errUserMessage interface {
+		UserMessage() string
+	}
+
 	err := rootCmd.Execute()
 
-	var validationError baseErrors.ValidationError
 	switch {
 	case err == nil:
-		fmt.Println("The execution finished without errors.")
-		os.Exit(0)
-	case errors.As(err, &validationError):
-		fmt.Fprintln(os.Stderr, "The execution finished with validation errors.")
-		fmt.Fprintln(os.Stderr, "Please check logs for get details and fix your commits.")
-		fmt.Fprintf(os.Stderr, "Error message: %s\n", err.Error())
+		fmt.Println("The execution finished without errors.\tOK.")
+	case errors.As(err, &errUserMessage):
+		fmt.Fprintln(os.Stderr, errUserMessage.UserMessage())
+		fmt.Fprintf(os.Stderr, "error trace: %s\n", err.Error())
 		os.Exit(1)
 	default:
 		fmt.Fprintln(os.Stderr, "The execution finished with internal errors.")
 		fmt.Fprintln(os.Stderr, "Please refer to the practices for details.")
-		fmt.Fprintf(os.Stderr, "Error message: %s\n", err.Error())
-		os.Exit(500)
+
+		panic(err)
 	}
 }
 

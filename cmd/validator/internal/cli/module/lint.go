@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/config"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/module"
@@ -22,15 +23,16 @@ var (
 		config.DefaultMode: runDefaultLintCmd,
 	}
 
-	lintModeGetterFunc = func(config config.Config) config.Mode {
-		return config.LintMode.Mode
+	lintModeGetterFunc = func(cfg config.Config) config.Mode {
+		return cfg.LintMode.Mode
 	}
 )
 
 func newLintCmd() *cobra.Command {
+	//nolint:exhaustruct // Set defaults values for another fields.
 	lintCmd := &cobra.Command{
 		Use:   "lint",
-		Short: "Lint student task",
+		Short: "Lint current module code",
 		RunE:  selectorRun(lintFuncMapper, lintModeGetterFunc),
 	}
 
@@ -48,10 +50,13 @@ func runDefaultLintCmd(cmd *cobra.Command, _ []string) error {
 		task,
 		module.WithTargetsCalculation(),
 	)
-
-	if err := processErr(student, task, err); err != nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("create service: %w", err)
 	}
 
-	return processErr(student, task, srv.RunLintModule(context.Background()))
+	if err := srv.RunLintModule(context.Background()); err != nil {
+		return fmt.Errorf("lint stage: %w", err)
+	}
+
+	return nil
 }
