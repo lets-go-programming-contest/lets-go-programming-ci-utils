@@ -1,0 +1,6 @@
+build:
+  mode: student
+lint:
+  mode: skip
+task:
+  mode: skip

@@ -1,3 +1,5 @@
-.vscode
-tmp/
-log/
+.ci_common
+.vs_code
+
+bin
+tmp
