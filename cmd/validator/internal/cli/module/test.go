@@ -18,7 +18,7 @@ var (
 		config.SkipMode:    runSkip(),
 		config.CommonMode:  runMakeFromCommon(makeFileTestTarget),
 		config.StudentMode: runMakeFromStudent(makeFileTestTarget),
-		config.DefaultMode: runDefaultBuildCmd,
+		config.DefaultMode: runDefaultTestCmd,
 	}
 
 	testModeGetterFunc = func(config config.Config) config.Mode {
@@ -47,13 +47,9 @@ func runDefaultTestCmd(cmd *cobra.Command, _ []string) error {
 		task,
 		module.WithTargetsCalculation(),
 	)
-	if err != nil {
+	if err := processErr(student, task, err); err != nil {
 		return err
 	}
 
-	if err := srv.RunTestModule(context.Background()); err != nil {
-		return err
-	}
-
-	return nil
+	return processErr(student, task, srv.RunTestModule(context.Background()))
 }

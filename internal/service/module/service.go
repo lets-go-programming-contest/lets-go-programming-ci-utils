@@ -168,14 +168,14 @@ func (s service) RunTestModule(
 	}
 
 	err = file.CopyDir(
-		filepath.Join(commonDir, commonTestsSourcePath),
+		filepath.Join(commonDir, s.taskName, commonTestsSourcePath),
 		filepath.Join(s.studentName, s.taskName, commonTestsTargetPath),
 	)
 
 	switch {
 	case err == nil:
 	case os.IsNotExist(err):
-		fmt.Printf("Common test for task %q not found.\tSkip.\n", s.taskName)
+		fmt.Printf("Common tests for task %q not found.\tSkip.\n", s.taskName)
 	default:
 		return fmt.Errorf("%w: %w", ErrCopyCommonTest, err)
 	}

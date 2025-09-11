@@ -84,7 +84,10 @@ func (e executor) ExecCommand(
 		}
 	}
 
-	if err := cmd.Run(); err != nil {
+	fmt.Printf("⇒ The following output refers to the execution of a command %q in an external process.\n", name)
+	err := cmd.Run()
+	fmt.Printf("⇒ End of output from a command run in an external process %q.\n", name)
+	if err != nil {
 		return fmt.Errorf("%w: %w", NewExecError(name, args), err)
 	}
 

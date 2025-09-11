@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/cmd/validator/internal/cli/module"
 	"github.com/lets-go-programming-contest/lets-go-programming-ci-utils/cmd/validator/internal/cli/sanity"
+	baseErrors "github.com/lets-go-programming-contest/lets-go-programming-ci-utils/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -30,11 +33,11 @@ func main() {
 		SilenceErrors: true,
 	}
 
-	// rootCmd.AddCommand(module.NewModuleCmd(
-	// 	initConfigFlag,
-	// 	initStudentFlag,
-	// 	initTaskFlag,
-	// ))
+	rootCmd.AddCommand(module.NewModuleCmd(
+		initConfigFlag,
+		initStudentFlag,
+		initTaskFlag,
+	))
 	rootCmd.AddCommand(sanity.NewSanityCmd(
 		initBaseRevFlag,
 		initTargetRevFlag,
@@ -42,9 +45,23 @@ func main() {
 
 	initConfigFlag(rootCmd)
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+	err := rootCmd.Execute()
+
+	var validationError baseErrors.ValidationError
+	switch {
+	case err == nil:
+		fmt.Println("The execution finished without errors.")
+		os.Exit(0)
+	case errors.As(err, &validationError):
+		fmt.Fprintln(os.Stderr, "The execution finished with validation errors.")
+		fmt.Fprintln(os.Stderr, "Please check logs for get details and fix your commits.")
+		fmt.Fprintf(os.Stderr, "Error message: %s\n", err.Error())
 		os.Exit(1)
+	default:
+		fmt.Fprintln(os.Stderr, "The execution finished with internal errors.")
+		fmt.Fprintln(os.Stderr, "Please refer to the practices for details.")
+		fmt.Fprintf(os.Stderr, "Error message: %s\n", err.Error())
+		os.Exit(500)
 	}
 }
 

@@ -13,6 +13,11 @@ import (
 
 const cliOutputNameFlag = "output"
 
+type (
+	errMakeTargetFromCommonFiles  error
+	errMakeTargetFromStudentFiles error
+)
+
 func must[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
@@ -92,7 +97,11 @@ func runMakeFromCommon(
 			ctx          = context.Background()
 		)
 
-		return runMakeTarget(ctx, student, task, makeFilePath, target)
+		if err := runMakeTarget(ctx, student, task, makeFilePath, target); err != nil {
+			return processErr(student, task, errMakeTargetFromCommonFiles(err))
+		}
+
+		return nil
 	}
 }
 
@@ -107,7 +116,11 @@ func runMakeFromStudent(
 			ctx          = context.Background()
 		)
 
-		return runMakeTarget(ctx, student, task, makeFilePath, target)
+		if err := runMakeTarget(ctx, student, task, makeFilePath, target); err != nil {
+			return processErr(student, task, errMakeTargetFromStudentFiles(err))
+		}
+
+		return nil
 	}
 }
 
@@ -126,7 +139,7 @@ func runMakeTarget(
 	}
 
 	if err := mod.RunMakeForModule(context.Background(), makefilePath, target); err != nil {
-		return err
+		return fmt.Errorf("run make target: %w", err)
 	}
 
 	return nil

@@ -10,17 +10,17 @@ var (
 	errPrepareOutputDir = errors.New("prepare output dir")
 	errCalculateAbsPath = errors.New("calculate abs path")
 
-	ErrCmdDirNotFound   = errors.New("module targets dir not found")
-	ErrPathNotModule    = errors.New("module path not contains go module")
-	ErrNothingToBuild   = errors.New("build targets not found in module")
-	ErrUpdateModuleDeps = errors.New("update module deps from go.mod file")
+	ErrCmdDirNotFound = errors.New("module targets dir not found")
+	ErrPathNotModule  = errors.New("module path not contains go module")
+	ErrNothingToBuild = errors.New("build targets not found in module")
 
-	ErrGetMakefile            = errors.New("makefile not found or cannot be opened")
-	ErrMakefilePathIsDir      = errors.New("makefile path is directory")
-	ErrExectureMakefileTarget = errors.New("makefile target execution failed")
-	ErrBuildModuleTargets     = errors.New("build module targets")
-	ErrLintModule             = errors.New("lint module")
-	ErrTestModule             = errors.New("test module")
+	ErrGetMakefile       = errors.New("makefile not found or cannot be opened")
+	ErrMakefilePathIsDir = errors.New("makefile path is directory")
+
+	ErrUpdateModuleDeps   = errors.New("update module deps from go.mod file")
+	ErrBuildModuleTargets = errors.New("build module targets")
+	ErrLintModule         = errors.New("lint module")
+	ErrTestModule         = errors.New("test module")
 )
 
 type BuildTargetError struct {

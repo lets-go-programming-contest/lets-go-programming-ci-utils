@@ -19,7 +19,7 @@ var (
 		config.SkipMode:    runSkip(),
 		config.CommonMode:  runMakeFromCommon(makeFileLintTarget),
 		config.StudentMode: runMakeFromStudent(makeFileLintTarget),
-		config.DefaultMode: runDefaultBuildCmd,
+		config.DefaultMode: runDefaultLintCmd,
 	}
 
 	lintModeGetterFunc = func(config config.Config) config.Mode {
@@ -48,13 +48,10 @@ func runDefaultLintCmd(cmd *cobra.Command, _ []string) error {
 		task,
 		module.WithTargetsCalculation(),
 	)
-	if err != nil {
+
+	if err := processErr(student, task, err); err != nil {
 		return err
 	}
 
-	if err := srv.RunLintModule(context.Background()); err != nil {
-		return err
-	}
-
-	return nil
+	return processErr(student, task, srv.RunLintModule(context.Background()))
 }

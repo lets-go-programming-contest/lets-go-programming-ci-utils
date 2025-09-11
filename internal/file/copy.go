@@ -1,12 +1,17 @@
 package file
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 )
 
 func CopyDir(src string, dst string) error {
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		return fmt.Errorf("create destination folder: %w", err)
+	}
+
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

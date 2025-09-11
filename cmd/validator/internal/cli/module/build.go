@@ -49,13 +49,10 @@ func runDefaultBuildCmd(cmd *cobra.Command, _ []string) error {
 		task,
 		module.WithTargetsCalculation(),
 	)
-	if err != nil {
+
+	if err := processErr(student, task, err); err != nil {
 		return err
 	}
 
-	if err := srv.RunBuildModuleTargets(context.Background(), outputDir); err != nil {
-		return err
-	}
-
-	return nil
+	return processErr(student, task, srv.RunBuildModuleTargets(context.Background(), outputDir))
 }
